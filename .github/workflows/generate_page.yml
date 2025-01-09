@@ -1,60 +1,52 @@
-name: Deploy static content to GitPages
-on:
-  workflow_dispatch:
-  workflow_run:
-    workflows: [Generate GitBlog README]  # Depends on the completion of the workflow: Generate GitBlog README
-    types:
-      - completed
-# Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
-permissions:
-  contents: read
-  pages: write
-  id-token: write
-concurrency:
-  group: ${{ github.workflow }}
-  cancel-in-progress: true
-
-jobs:
-  deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: ubuntu-latest
-    env:
-      GH_TOKEN: ${{ secrets.G_T }}
-      USER: ${{ github.repository_owner }}
-      REPO: ${{ github.event.repository.name }}
-      #if you use Gitpage and your repo'name is not {usernmae}.github.io,please use this
-      BASE_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}
-      # else if your repo's name is {usernmae}.github.io,please use this,please use this
-      # BASE_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Use Node.js 20
-        uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-      - name: Cache NPM dependencies
-        uses: actions/cache@v4
-        with:
-          path: node_modules
-          key: ${{ runner.OS }}-npm-cache
-          restore-keys: |
-            ${{ runner.OS }}-npm-cache
-      - name: Generate Hexo public #please change the clone repo to your own，format as follow：git clone https://$GH_TOKEN@github.com/{username}/{repo}.git output 
-        #you also can change the clone repo to a test_repo,format as follow git clone https://github.com/WQhuanm/Test_Blog_Repo.git output
-        run: |
-          npm install -g hexo-cli
-          git clone https://$GH_TOKEN@github.com/WQhuanm/Issue_Blog_Repo.git output 
-          cd output && sudo rm -rf node_modules
-          npm install 
-          mkdir -p ./source/_posts/ && cp ../Blog/* ./source/_posts/
-          hexo clean && hexo generate && gulp
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: 'output/public' #these will be deploy to Gitpage
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+   name: Deploy static content to GitPages
+   on:
+   workflow_dispatch:
+   workflow_run:
+       workflows: [Generate GitBlog README]  # Depends on the completion of the workflow: Generate GitBlog README
+       types:
+       - completed
+   # Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
+   permissions:
+   contents: read
+   pages: write
+   id-token: write
+   concurrency:
+   group: ${{ github.workflow }}
+   cancel-in-progress: true
+   jobs:
+   deploy:
+       environment:
+           name: github-pages
+           url: ${{ steps.deployment.outputs.page_url }}
+       runs-on: ubuntu-latest
+       env:
+           GH_TOKEN: ${{ github.token }}
+           ISITE_VERSION: v0.1.3
+           ZOLA_VERSION: v0.19.2
+           USER: ${{ github.repository_owner }}
+           REPO: ${{ github.event.repository.name }}
+            #if you use Gitpage and your repo'name is not {usernmae}.github.io,please use this
+           BASE_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}
+           # else if your repo's name is {usernmae}.github.io,please use this,please use this
+           # BASE_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}
+       steps:
+       - name: Checkout
+           uses: actions/checkout@v4
+       - name: Generate markdown
+           run: |
+           gh release download $ISITE_VERSION --repo kemingy/isite -p '*Linux_x86_64*' --output isite.tar.gz
+           tar zxf isite.tar.gz && mv isite /usr/local/bin
+           isite generate --user $USER --repo $REPO
+           gh release download $ZOLA_VERSION --repo getzola/zola -p '*linux*' --output zola.tar.gz
+           tar zxf zola.tar.gz && mv zola /usr/local/bin
+           cp config.toml output/config.toml
+           cd output && zola build --base-url $BASE_URL
+       - name: Setup Pages
+           uses: actions/configure-pages@v4
+       - name: Upload artifact
+           uses: actions/upload-pages-artifact@v2
+           with:
+           path: 'output/public'
+       - name: Deploy to GitHub Pages
+           id: deployment
+           uses: actions/deploy-pages@v3
