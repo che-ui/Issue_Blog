@@ -1,0 +1,15 @@
+   base_url = "https://{username}.github.io/{your blog repo}/" #如果repo是{username}.github.io,请改为https://{username}.github.io/
+   generate_feeds = true
+   feed_filenames = ["rss.xml"]
+   theme = "even"
+   taxonomies = [
+       {name = "categories", feed = true},
+       {name = "tags", feed = true},
+   ]
+   [extra]
+   even_title = "yihong0618's Blog"
+   even_menu = [
+       {url = "$BASE_URL", name = "Home"},
+       {url = "$BASE_URL/tags/top/", name = "Top"},
+       {url = "$BASE_URL/issue-282/", name = "About"},
+   ]
